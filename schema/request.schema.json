@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/adunext/mep/schema/request.schema.json",
+  "title": "MEP 1 request (requests/<id>.json)",
+  "type": "object",
+  "required": ["mep", "key", "who"],
+  "properties": {
+    "mep": { "const": 1 },
+    "id": { "type": "string", "pattern": "^[A-Za-z0-9_-]{1,100}$", "description": "可省略；写了必须与文件名一致" },
+    "key": { "type": "string", "minLength": 1, "maxLength": 64, "description": "本单口令" },
+    "who": { "type": "string", "pattern": "^[\\p{L}\\p{N}][\\p{L}\\p{N} ._-]{0,23}$", "description": "助手署名，首尾不留空格" },
+    "base": { "type": "string", "pattern": "^[a-f0-9]{16,64}$", "description": "project.json 的 revision" },
+    "ops": { "type": "array", "minItems": 1, "maxItems": 100, "items": { "$ref": "#/$defs/op" } },
+    "roughcut": { "$ref": "#/$defs/roughcut" },
+    "template": { "$ref": "#/$defs/template" },
+    "look": { "$ref": "#/$defs/look" },
+    "voice": { "$ref": "#/$defs/voice" },
+    "search": { "$ref": "#/$defs/search" },
+    "fetch": { "$ref": "#/$defs/fetch" }
+  },
+  "additionalProperties": false,
+  "oneOf": [
+    { "required": ["ops"], "not": { "anyOf": [{ "required": ["roughcut"] }, { "required": ["template"] }, { "required": ["look"] }, { "required": ["voice"] }, { "required": ["search"] }, { "required": ["fetch"] }] } },
+    { "required": ["roughcut"], "not": { "anyOf": [{ "required": ["ops"] }, { "required": ["template"] }, { "required": ["look"] }, { "required": ["voice"] }, { "required": ["search"] }, { "required": ["fetch"] }] } },
+    { "required": ["template"], "not": { "anyOf": [{ "required": ["ops"] }, { "required": ["roughcut"] }, { "required": ["look"] }, { "required": ["voice"] }, { "required": ["search"] }, { "required": ["fetch"] }] } },
+    { "required": ["look"], "not": { "anyOf": [{ "required": ["ops"] }, { "required": ["roughcut"] }, { "required": ["template"] }, { "required": ["voice"] }, { "required": ["search"] }, { "required": ["fetch"] }] } },
+    { "required": ["voice"], "not": { "anyOf": [{ "required": ["ops"] }, { "required": ["roughcut"] }, { "required": ["template"] }, { "required": ["look"] }, { "required": ["search"] }, { "required": ["fetch"] }] } },
+    { "required": ["search"], "not": { "anyOf": [{ "required": ["ops"] }, { "required": ["roughcut"] }, { "required": ["template"] }, { "required": ["look"] }, { "required": ["voice"] }, { "required": ["fetch"] }] } },
+    { "required": ["fetch"], "not": { "anyOf": [{ "required": ["ops"] }, { "required": ["roughcut"] }, { "required": ["template"] }, { "required": ["look"] }, { "required": ["voice"] }, { "required": ["search"] }] } }
+  ],
+  "allOf": [
+    { "if": { "anyOf": [{ "required": ["ops"] }, { "required": ["roughcut"] }, { "required": ["template"] }] }, "then": { "required": ["base"] } },
+    { "if": { "required": ["look"], "properties": { "look": { "not": { "required": ["src"] } } } }, "then": { "required": ["base"] } }
+  ],
+  "$defs": {
+    "clipId": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "track": { "oneOf": [{ "type": "integer", "minimum": 0 }, { "enum": ["top", "bottom"] }] },
+    "box": { "type": "object", "properties": { "x": { "type": "number" }, "y": { "type": "number" }, "w": { "type": "number", "minimum": 1, "maximum": 20000 }, "h": { "type": "number", "minimum": 1, "maximum": 20000 }, "r": { "type": "number", "minimum": -36000, "maximum": 36000 } }, "additionalProperties": false },
+    "fps": { "oneOf": [{ "enum": [23.976, 24, 25, 29.97, 30, 48, 50, 59.94, 60, 120] }, { "const": "auto" }] },
+    "op": {
+      "type": "object",
+      "required": ["op"],
+      "oneOf": [
+        { "properties": { "op": { "const": "move" }, "clip": { "$ref": "#/$defs/clipId" }, "at": { "type": "number", "minimum": 0 }, "track": { "$ref": "#/$defs/track" } }, "required": ["clip", "at"], "additionalProperties": false },
+        { "properties": { "op": { "const": "set" }, "clip": { "$ref": "#/$defs/clipId" }, "field": { "enum": ["at", "volume", "speed", "time", "box", "style", "fade", "duck"] }, "value": {} }, "required": ["clip", "field", "value"], "additionalProperties": false },
+        { "properties": { "op": { "const": "remove" }, "clip": { "$ref": "#/$defs/clipId" }, "ripple": { "type": "boolean" } }, "required": ["clip"], "additionalProperties": false },
+        { "properties": { "op": { "const": "cut" }, "clip": { "$ref": "#/$defs/clipId" }, "at": { "type": "number", "exclusiveMinimum": 0 } }, "required": ["clip", "at"], "additionalProperties": false },
+        { "properties": { "op": { "const": "content" }, "clip": { "$ref": "#/$defs/clipId" }, "path": { "type": "string", "maxLength": 200 }, "value": { "oneOf": [{ "type": "string", "maxLength": 2000 }, { "type": "number" }] } }, "required": ["clip", "path", "value"], "additionalProperties": false },
+        { "properties": { "op": { "const": "page" }, "clip": { "$ref": "#/$defs/clipId" }, "text": { "type": "string", "minLength": 1, "maxLength": 1048576 } }, "required": ["clip", "text"], "additionalProperties": false },
+        { "properties": { "op": { "const": "animation" }, "clip": { "$ref": "#/$defs/clipId" }, "part": { "enum": ["in", "out", "loop"] }, "style": { "type": "string" }, "seconds": { "type": "number", "minimum": 0.05, "maximum": 10 } }, "required": ["clip", "part", "style"], "additionalProperties": false },
+        { "properties": { "op": { "const": "stage" }, "w": { "type": "integer", "minimum": 64, "maximum": 4096 }, "h": { "type": "integer", "minimum": 64, "maximum": 4096 }, "fps": { "$ref": "#/$defs/fps" } }, "required": ["w", "h"], "additionalProperties": false },
+        { "properties": { "op": { "const": "fps" }, "fps": { "$ref": "#/$defs/fps" } }, "required": ["fps"], "additionalProperties": false },
+        { "properties": { "op": { "const": "file" }, "path": { "type": "string", "pattern": "^(?:pages|scenes|styles|scripts|data)/(?:[A-Za-z0-9_-][A-Za-z0-9_.-]{0,80}/){0,3}[A-Za-z0-9_-][A-Za-z0-9_.-]{0,80}\\.(?:html|css|js|mjs|json|svg)$" }, "text": { "type": "string", "maxLength": 1048576 }, "without_template": { "type": "boolean" } }, "required": ["path", "text"], "additionalProperties": false },
+        { "properties": { "op": { "const": "import" }, "path": { "type": "string", "pattern": "^inbox/" } }, "required": ["path"], "additionalProperties": false },
+        { "properties": { "op": { "const": "add" }, "clip": { "type": "object", "properties": { "id": { "type": "string" }, "src": { "type": "string" }, "at": { "type": "number", "minimum": 0 }, "time": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 }, "volume": { "type": "number", "minimum": 0, "maximum": 4 }, "speed": { "type": "number" }, "box": { "$ref": "#/$defs/box" }, "style": { "type": "string" } }, "required": ["src"], "additionalProperties": false }, "track": { "$ref": "#/$defs/track" } }, "required": ["clip"], "additionalProperties": false },
+        { "properties": { "op": { "const": "subtitleStyle" }, "patch": { "type": "object" } }, "required": ["patch"], "additionalProperties": false },
+        { "properties": { "op": { "const": "subtitleSplit" }, "clip": { "$ref": "#/$defs/clipId" }, "maxCells": { "type": "integer", "minimum": 1 }, "line": { "type": "integer", "minimum": 0 }, "before": { "type": "array", "items": { "type": "string" } } }, "required": ["clip"], "additionalProperties": false },
+        { "properties": { "op": { "const": "translation" }, "clip": { "$ref": "#/$defs/clipId" }, "language": { "type": "string" }, "lines": { "type": "array", "items": { "type": "object", "properties": { "line": { "type": "integer", "minimum": 0 }, "text": { "type": "string", "minLength": 1, "maxLength": 300 } }, "required": ["line", "text"], "additionalProperties": false } } }, "required": ["clip", "language", "lines"], "additionalProperties": false }
+      ]
+    },
+    "roughcut": {
+      "type": "object",
+      "required": ["action"],
+      "properties": {
+        "action": { "enum": ["read", "preview", "apply"] },
+        "clipId": { "type": "string" },
+        "rev": { "type": "string" },
+        "offset": { "type": "integer", "minimum": 0 },
+        "limit": { "type": "integer", "minimum": 1 },
+        "decision": {
+          "type": "object",
+          "properties": {
+            "cuts": { "type": "array", "items": { "type": "object", "required": ["line", "kind"], "properties": { "line": { "type": "string", "pattern": "^L\\d+$" }, "toLine": { "type": "string", "pattern": "^L\\d+$" }, "quote": { "type": "string" }, "occurrence": { "type": "integer", "minimum": 1 }, "kind": { "enum": ["retake", "false_start", "misspeak", "stutter", "filler", "aside"] }, "reason": { "type": "string" } } } },
+            "pace": { "const": "tight" },
+            "note": { "type": "string" }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "template": {
+      "type": "object",
+      "required": ["operation"],
+      "properties": {
+        "operation": { "enum": ["compose", "propose"] },
+        "goal": { "type": "string", "maxLength": 4000 },
+        "until": { "const": "plan" }
+      }
+    },
+    "look": {
+      "type": "object",
+      "oneOf": [
+        { "properties": { "times": { "type": "array", "minItems": 1, "maxItems": 12, "items": { "type": "number", "minimum": 0 } }, "width": { "type": "integer", "minimum": 160, "maximum": 960 }, "captions": { "type": "boolean" } }, "required": ["times"], "additionalProperties": false },
+        { "properties": { "sheet": { "type": "object", "properties": { "from": { "type": "number", "minimum": 0 }, "to": { "type": "number" }, "count": { "type": "integer", "minimum": 2, "maximum": 60 } }, "required": ["from", "to"], "additionalProperties": false }, "captions": { "type": "boolean" } }, "required": ["sheet"], "additionalProperties": false },
+        { "properties": { "src": { "type": "string" }, "at": { "type": "number", "minimum": 0 }, "width": { "type": "integer", "minimum": 160, "maximum": 960 } }, "required": ["src"], "additionalProperties": false }
+      ]
+    },
+    "voice": {
+      "type": "object",
+      "properties": { "text": { "type": "string", "maxLength": 20000 }, "voice": { "type": "string" }, "name": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,59}$" }, "list": { "type": "boolean" }, "language": { "type": "string" }, "q": { "type": "string" } },
+      "additionalProperties": false
+    },
+    "search": {
+      "type": "object",
+      "required": ["kind", "q"],
+      "properties": { "kind": { "enum": ["image", "video", "music"] }, "q": { "type": "string", "minLength": 1 }, "count": { "type": "integer", "minimum": 1, "maximum": 30 }, "page": { "type": "integer", "minimum": 1 }, "orientation": { "enum": ["landscape", "portrait", "square"] }, "provider": { "type": "string" } },
+      "additionalProperties": false
+    },
+    "fetch": {
+      "type": "object",
+      "required": ["items"],
+      "properties": { "items": { "type": "array", "minItems": 1, "maxItems": 20, "items": { "type": "object", "required": ["ref"], "properties": { "ref": { "type": "string", "pattern": "^[\\w.:-]{1,200}$" }, "name": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,59}$" } }, "additionalProperties": false } } },
+      "additionalProperties": false
+    }
+  }
+}
