@@ -6,6 +6,8 @@
 
 本文中的「必须」「不得」「应当」「可以」分别对应 RFC 2119 的 MUST、MUST NOT、SHOULD、MAY。
 
+English version: [SPEC.en.md](SPEC.en.md).
+
 ---
 
 ## 1. 角色与术语

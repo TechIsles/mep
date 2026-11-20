@@ -6,6 +6,8 @@
 
 我们有信心，MEP 会成为 AI 时代剪辑软件的行业协议标准。下面讲清楚它是什么、和 MCP 及 Computer Use 有什么不同、为什么是它。
 
+English version: [why-mep.en.md](why-mep.en.md).
+
 ---
 
 ## 一、问题：AI 助手怎么操作剪辑软件
